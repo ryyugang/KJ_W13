@@ -26,15 +26,22 @@ function App() {
 }
 
 function Home() {
-  const [글제목, 글제목변경] = useState(() => {
-    try {
-      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return storedData ? JSON.parse(storedData) : [];
-    } catch (error) {
-      console.error("Failed to parse local storage data", error);
-      return [];
+  const navigate = useNavigate();
+  const location = useLocation(); 
+  const [글제목, 글제목변경] = useState([]);
+
+  useEffect(() => {
+    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const 저장된글제목 = storedData ? JSON.parse(storedData) : [];
+    글제목변경(저장된글제목);
+  }, []);
+
+  useEffect(() => {
+    const { state } = location;
+    if (state && state.updatedPosts) {
+      글제목변경(state.updatedPosts);
     }
-  });
+  }, [location]); 
 
   const [selectedPost, setSelectedPost] = useState(null);
 
@@ -84,6 +91,10 @@ function Home() {
     } catch (error) {
       console.error("실패함 ;;", error);
     }
+  };
+
+  const handlePostClick = (post, index) => {
+    navigate(`/write?postId=${index}`);
   };
 
   const toggleLike = (post) => {
@@ -198,6 +209,15 @@ function Home() {
                   {selectedPost.dislikes || 0}
                 </button>
               </div>
+              <button
+                className="edit-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePostClick(selectedPost, 글제목.indexOf(selectedPost));
+                }}
+              >
+                수정
+              </button>
               <div className='comment-section'></div>
               <h3>===== 댓글 =====</h3>
               {selectedPost.comments && selectedPost.comments.map((comment, index) => (
@@ -249,16 +269,13 @@ function Write({ mode, post }) {
       dislikes: 0,
       comments: [],
     };
-
+  
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       const 글제목 = storedData ? JSON.parse(storedData) : [];
       const updatedPosts = [...글제목, newPost];
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-      setTitleValue('');
-      setContentValue('');
-      setImageValue('');
-      navigate('/');
+      navigate('/', { state: { updatedPosts } });
     } catch (error) {
       console.error("Failed to save new post", error);
     }
@@ -268,15 +285,19 @@ function Write({ mode, post }) {
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       const 글제목 = storedData ? JSON.parse(storedData) : [];
-      const updatedPosts = 글제목.map((p) => (p === post ? {
-        ...post,
-        title: titleValue,
-        content: contentValue,
-        image: imageValue,
-        date: new Date().toLocaleDateString(),
-      } : p));
+      const updatedPosts = 글제목.map((p, index) =>
+        p === post
+          ? {
+              ...p,
+              title: titleValue,
+              content: contentValue,
+              image: imageValue,
+              date: new Date().toLocaleDateString(),
+            }
+          : p
+      );
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-      navigate('/');
+      navigate('/', { state: { updatedPosts } });
     } catch (error) {
       console.error("Failed to update post", error);
     }
