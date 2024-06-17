@@ -1,11 +1,15 @@
+// warning 무시해주는 코드
 /* eslint-disable */
 
+// React와 React Router 라이브러리 호출
 import './App.css';
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 
+// local storage에 저장할 키 값을 정의 
 const LOCAL_STORAGE_KEY = '글제목';
 
+// App Routing 설정
 function App() {
   return (
     <Router>
@@ -18,117 +22,118 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/write" element={<WriteWrapper />} />
+          <Route path="/write" element={<Write />} />
         </Routes>
       </div>
     </Router>
   );
 }
 
+// Main Page Component
 function Home() {
+  // navigate 함수를 가져와 페이지 이동 가능하게 함
   const navigate = useNavigate();
-  const location = useLocation(); 
-  const [글제목, 글제목변경] = useState([]);
+  // 현재 URL 정보 가져옴
+  const location = useLocation();
+  // 게시물 상태와 함수 정의
+  const [posts, setPosts] = useState([]);
+  // 선택된 게시물 상태와 함수 정의
+  const [selectedPost, setSelectedPost] = useState(null);
 
+  // Component가 처음 Rendering 될 때 Local Storage에서 게시물 데잍를 가져와 상태에 저장
   useEffect(() => {
     const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const 저장된글제목 = storedData ? JSON.parse(storedData) : [];
-    글제목변경(저장된글제목);
+    const storedPosts = storedData ? JSON.parse(storedData) : [];
+    setPosts(storedPosts);
   }, []);
 
+  // URL 변경 시 업데이트된 게시물 데이터를 상태에 저장
   useEffect(() => {
     const { state } = location;
     if (state && state.updatedPosts) {
-      글제목변경(state.updatedPosts);
+      setPosts(state.updatedPosts);
     }
-  }, [location]); 
+  }, [location]);
 
-  const [selectedPost, setSelectedPost] = useState(null);
-
-  const openModal = (post) => {
-    setSelectedPost(post);
-  };
-
-  const closeModal = () => {
-    setSelectedPost(null);
-  };
-
-  const handleOutsideClick = (e) => {
-    if (e.target.classList.contains('modal')) {
-      closeModal();
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      closeModal();
-    }
-  };
-
-  const deletePost = (index) => {
-    if (window.confirm('진짜 삭제함 ?')) {
-      const updatedPosts = [...글제목];
-      updatedPosts.splice(index, 1);
-      글제목변경(updatedPosts);
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-      } catch (error) {
-        console.error("Failed to update local storage", error);
-      }
-    }
-  };
-
-  const updatePost = (post, updateFn) => {
-    const updatedPosts = 글제목.map((p) => {
-      if (p === post) {
-        return updateFn(p);
-      }
-      return p;
-    });
-    글제목변경(updatedPosts);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-    } catch (error) {
-      console.error("실패함 ;;", error);
-    }
-  };
-
-  const handlePostClick = (post, index) => {
-    navigate(`/write?postId=${index}`);
-  };
-
-  const toggleLike = (post) => {
-    updatePost(post, (p) => ({
-      ...p,
-      likes: p.likes ? p.likes + 1 : 1,
-    }));
-  };
-
-  const toggleDislike = (post) => {
-    updatePost(post, (p) => ({
-      ...p,
-      dislikes: p.dislikes ? p.dislikes + 1 : 1,
-    }));
-  };
-
-  const addComment = (post, comment) => {
-    updatePost(post, (p) => ({
-      ...p,
-      comments: p.comments ? [...p.comments, comment] : [comment],
-    }));
-    setSelectedPost({ ...post, comments: post.comments ? [...post.comments, comment] : [comment] });
-  };
-
+  // ESC를 누를 때 모달 창 닫게 함
   useEffect(() => {
-    document.addEventListener('mousedown', handleOutsideClick);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
+  // 모달창 열고 선택된 게시물 상태 업데이트
+  const openModal = (post) => {
+    setSelectedPost(post);
+  };
+
+  // 모달창 닫고 선택된 게시물 상태 초기화
+  const closeModal = () => {
+    setSelectedPost(null);
+  };
+
+  // 게시물 삭제
+  const deletePost = (index) => {
+    if (window.confirm('진짜 삭제함 ?')) {
+      const updatedPosts = [...posts];
+      updatedPosts.splice(index, 1);
+      setPosts(updatedPosts);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+      } catch (error) {
+        console.error("삭제 실패함 ;;", error);
+      }
+    }
+  };
+
+  // 게시물 수정
+  const updatePost = (updatedPost) => {
+    const updatedPosts = posts.map((p) => (p === selectedPost ? updatedPost : p));
+    setPosts(updatedPosts);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+    } catch (error) {
+      console.error("수정 실패함 ;;", error);
+    }
+  };
+
+  // 선택된 게시물의 좋아요 수 증가
+  const toggleLike = () => {
+    const updatedPost = {
+      ...selectedPost,
+      likes: selectedPost.likes ? selectedPost.likes + 1 : 1,
+    };
+    updatePost(updatedPost);
+  };
+
+  // 선택된 게시물의 싫어요 수 증가
+  const toggleDislike = () => {
+    const updatedPost = {
+      ...selectedPost,
+      dislikes: selectedPost.dislikes ? selectedPost.dislikes + 1 : 1,
+    };
+    updatePost(updatedPost);
+  };
+
+  // 선택된 게시물에 댓글 추가
+  const addComment = (comment) => {
+    const updatedPost = {
+      ...selectedPost,
+      comments: selectedPost.comments ? [...selectedPost.comments, comment] : [comment],
+    };
+    updatePost(updatedPost);
+    setSelectedPost(updatedPost);
+  };
+
+  // Main Page UI Rendering
   return (
     <>
       <div className="write-button-container">
@@ -137,36 +142,36 @@ function Home() {
         </Link>
       </div>
       <div className='album'>
-        {글제목.map((글, i) => (
-          <div className='album-item' key={i} onClick={() => openModal(글)} style={{ cursor:'pointer'}}>
-            {글.image ? (
-              <img src={글.image} alt={글.title} />
+        {posts.map((post, i) => (
+          <div className='album-item' key={i} onClick={() => openModal(post)} style={{ cursor: 'pointer' }}>
+            {post.image ? (
+              <img src={post.image} alt={post.title} />
             ) : (
               <img src={`https://via.placeholder.com/200x200?text=No+Image`} alt="No Image" />
             )}
-            <h4>{글.title}</h4>
-            <p>{글.date} 작성</p>
+            <h4>{post.title}</h4>
+            <p>{post.date} 작성</p>
             <div className="album-item-buttons">
               <div className="like-dislike-buttons">
                 <button
-                  className={`like-button ${글.likes ? 'active' : ''}`}
+                  className={`like-button ${post.likes ? 'active' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleLike(글);
+                    toggleLike();
                   }}
                 >
                   <span role="img" aria-label="likes">❤️</span>
-                  {글.likes || 0}
+                  {post.likes || 0}
                 </button>
                 <button
-                  className={`dislike-button ${글.dislikes ? 'active' : ''}`}
+                  className={`dislike-button ${post.dislikes ? 'active' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleDislike(글);
+                    toggleDislike();
                   }}
                 >
                   <span role="img" aria-label="dislikes">👎</span>
-                  {글.dislikes || 0}
+                  {post.dislikes || 0}
                 </button>
               </div>
               <button
@@ -183,8 +188,8 @@ function Home() {
         ))}
       </div>
       {selectedPost && (
-        <div className="modal">
-          <div className="modal-content">
+        <div className="modal" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <span className="close" onClick={closeModal}>&times;</span>
             <div className="write-preview">
               {selectedPost.image && (
@@ -196,14 +201,14 @@ function Home() {
               <div className="like-dislike-buttons">
                 <button
                   className={`like-button ${selectedPost.likes ? 'active' : ''}`}
-                  onClick={() => toggleLike(selectedPost)}
+                  onClick={toggleLike}
                 >
                   <span role="img" aria-label="likes">❤️</span>
                   {selectedPost.likes || 0}
                 </button>
                 <button
                   className={`dislike-button ${selectedPost.dislikes ? 'active' : ''}`}
-                  onClick={() => toggleDislike(selectedPost)}
+                  onClick={toggleDislike}
                 >
                   <span role="img" aria-label="dislikes">👎</span>
                   {selectedPost.dislikes || 0}
@@ -213,7 +218,7 @@ function Home() {
                 className="edit-button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handlePostClick(selectedPost, 글제목.indexOf(selectedPost));
+                  navigate(`/write?postId=${posts.indexOf(selectedPost)}`);
                 }}
               >
                 수정
@@ -227,7 +232,7 @@ function Home() {
               ))}
               <input type="text" placeholder="댓글 작성" onKeyPress={(e) => {
                 if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                  addComment(selectedPost, e.target.value.trim());
+                  addComment(e.target.value.trim());
                   e.target.value = '';
                 }
               }} />
@@ -239,12 +244,46 @@ function Home() {
   );
 }
 
-function Write({ mode, post }) {
-  const [titleValue, setTitleValue] = useState(mode === 'edit' ? post.title : '');
-  const [contentValue, setContentValue] = useState(mode === 'edit' ? post.content : '');
-  const [imageValue, setImageValue] = useState(mode === 'edit' ? post.image : '');
-  const navigate = useNavigate();
+// 글쓰기 페이지 Component
+function Write() {
 
+  // 제목, 내용, 이미지 상태와 함수 정의
+  const [titleValue, setTitleValue] = useState('');
+  const [contentValue, setContentValue] = useState('');
+  const [imageValue, setImageValue] = useState('');
+
+  // navigate 함수 가져와 페이지 이동 가능하게 함
+  const navigate = useNavigate();
+  // 현재 URL 정보 가져옴
+  const location = useLocation();
+  // 글 수정 모드 상태와 함수 정의
+  const [isEditing, setIsEditing] = useState(false);
+  // 수정할 게시물 상태와 함수 정의
+  const [editingPost, setEditingPost] = useState(null);
+
+  // URL 변경 시 게시물 수정 모드로 전환, 수정할 게시물 데이터를 상태에 저장
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const postId = searchParams.get('postId');
+    if (postId) {
+      try {
+        const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const posts = storedData ? JSON.parse(storedData) : [];
+        const selectedPost = posts[parseInt(postId, 10)];
+        if (selectedPost) {
+          setIsEditing(true);
+          setEditingPost(selectedPost);
+          setTitleValue(selectedPost.title);
+          setContentValue(selectedPost.content);
+          setImageValue(selectedPost.image);
+        }
+      } catch (error) {
+        console.error("Failed to retrieve post for editing", error);
+      }
+    }
+  }, [location]);
+
+  // 이미지 파일을 변경할 때 호출
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -258,6 +297,17 @@ function Write({ mode, post }) {
     }
   };
 
+  // 게시물을 저장하고 메인 페이지로 이동
+  const savePost = (updatedPosts) => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+      navigate('/', { state: { updatedPosts } });
+    } catch (error) {
+      console.error("Failed to save post", error);
+    }
+  };
+
+  // 새 글을 작성하고 메인 페이지로 이동
   const handleSubmit = () => {
     const now = new Date();
     const newPost = {
@@ -269,24 +319,24 @@ function Write({ mode, post }) {
       dislikes: 0,
       comments: [],
     };
-  
+
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const 글제목 = storedData ? JSON.parse(storedData) : [];
-      const updatedPosts = [...글제목, newPost];
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-      navigate('/', { state: { updatedPosts } });
+      const posts = storedData ? JSON.parse(storedData) : [];
+      const updatedPosts = [...posts, newPost];
+      savePost(updatedPosts);
     } catch (error) {
       console.error("Failed to save new post", error);
     }
   };
 
+  // 게시물을 수정하고 메인 페이지로 이동
   const handleUpdate = () => {
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const 글제목 = storedData ? JSON.parse(storedData) : [];
-      const updatedPosts = 글제목.map((p, index) =>
-        p === post
+      const posts = storedData ? JSON.parse(storedData) : [];
+      const updatedPosts = posts.map((p) =>
+        p === editingPost
           ? {
               ...p,
               title: titleValue,
@@ -296,16 +346,16 @@ function Write({ mode, post }) {
             }
           : p
       );
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-      navigate('/', { state: { updatedPosts } });
+      savePost(updatedPosts);
     } catch (error) {
       console.error("Failed to update post", error);
     }
   };
 
+  // 글쓰기 페이지와 UI Rendering
   return (
     <div className="write-container">
-      <h4>{mode === 'edit' ? '글 수정' : '새 글 작성'}</h4>
+      <h4>{isEditing ? '글 수정' : '새 글 작성'}</h4>
       <div className="write-preview">
         <div className="write-image-container">
           <label htmlFor="image-input">
@@ -337,7 +387,7 @@ function Write({ mode, post }) {
           placeholder="내용"
         ></textarea>
       </div>
-      {mode === 'edit' ? (
+      {isEditing ? (
         <button className="write-submit-button" onClick={handleUpdate}>
           Update
         </button>
@@ -348,32 +398,6 @@ function Write({ mode, post }) {
       )}
     </div>
   );
-}
-
-function WriteWrapper() {
-  const [mode, setMode] = useState('create');
-  const [post, setPost] = useState(null);
-  const location = useLocation();
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const postId = searchParams.get('postId');
-    if (postId) {
-      try {
-        const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-        const 글제목 = storedData ? JSON.parse(storedData) : [];
-        const selectedPost = 글제목[parseInt(postId, 10)];
-        if (selectedPost) {
-          setMode('edit');
-          setPost(selectedPost);
-        }
-      } catch (error) {
-        console.error("Failed to retrieve post for editing", error);
-      }
-    }
-  }, [location]);
-
-  return <Write mode={mode} post={post} />;
 }
 
 export default App;
