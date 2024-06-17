@@ -1,64 +1,358 @@
 /* eslint-disable */
 
-import logo from './logo.svg';
 import './App.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 
+const LOCAL_STORAGE_KEY = '글제목';
 
 function App() {
-  
-  let post = '강남 우동 맛집';
-  let [글제목, 글제목변경] = useState(['남자 코트 추천', '강남 우동 맛집', 'React 독학']);
-  let [따봉, 따봉변경] = useState(0);
-    
-  
-  function 함수() {
-      따봉변경(따봉+1);
-  }
+  return (
+    <Router>
+      <div className='App'>
+        <div className='black-nav'>
+          <h4>
+            <Link to='/'>유사게시판</Link>
+          </h4>
+        </div>
+
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/write" element={<WriteWrapper />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+function Home() {
+  const [글제목, 글제목변경] = useState(() => {
+    try {
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return storedData ? JSON.parse(storedData) : [];
+    } catch (error) {
+      console.error("Failed to parse local storage data", error);
+      return [];
+    }
+  });
+
+  const [selectedPost, setSelectedPost] = useState(null);
+
+  const openModal = (post) => {
+    setSelectedPost(post);
+  };
+
+  const closeModal = () => {
+    setSelectedPost(null);
+  };
+
+  const handleOutsideClick = (e) => {
+    if (e.target.classList.contains('modal')) {
+      closeModal();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+
+  const deletePost = (index) => {
+    if (window.confirm('진짜 삭제함 ?')) {
+      const updatedPosts = [...글제목];
+      updatedPosts.splice(index, 1);
+      글제목변경(updatedPosts);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+      } catch (error) {
+        console.error("Failed to update local storage", error);
+      }
+    }
+  };
+
+  const updatePost = (post, updateFn) => {
+    const updatedPosts = 글제목.map((p) => {
+      if (p === post) {
+        return updateFn(p);
+      }
+      return p;
+    });
+    글제목변경(updatedPosts);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+    } catch (error) {
+      console.error("실패함 ;;", error);
+    }
+  };
+
+  const toggleLike = (post) => {
+    updatePost(post, (p) => ({
+      ...p,
+      likes: p.likes ? p.likes + 1 : 1,
+    }));
+  };
+
+  const toggleDislike = (post) => {
+    updatePost(post, (p) => ({
+      ...p,
+      dislikes: p.dislikes ? p.dislikes + 1 : 1,
+    }));
+  };
+
+  const addComment = (post, comment) => {
+    updatePost(post, (p) => ({
+      ...p,
+      comments: p.comments ? [...p.comments, comment] : [comment],
+    }));
+    setSelectedPost({ ...post, comments: post.comments ? [...post.comments, comment] : [comment] });
+  };
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
-    <div className="App">
-      <div className="black-nav">
-        <h4> ReactBlog</h4>
+    <>
+      <div className="write-button-container">
+        <Link to="/write" className="write-button">
+          글쓰기
+        </Link>
       </div>
-
-      <button onClick={()=>{ 
-        let copy = [...글제목];
-        copy[0] = '여자 코트 추천';
-        글제목변경(copy);
-      }}> 글수정 </button>
-
-      <button onClick={()=>{
-        let 정렬글제목 = [...글제목];
-        정렬글제목.sort();
-        글제목변경(정렬글제목);
-      }}> 정렬 </button>
-
-      <div className='list'>
-        <h4>{ 글제목[0] } <span onClick={ 함수 }>👍</span> { 따봉 } </h4>
-        <p>2월 17일 발행</p>
+      <div className='album'>
+        {글제목.map((글, i) => (
+          <div className='album-item' key={i} onClick={() => openModal(글)} style={{ cursor:'pointer'}}>
+            {글.image ? (
+              <img src={글.image} alt={글.title} />
+            ) : (
+              <img src={`https://via.placeholder.com/200x200?text=No+Image`} alt="No Image" />
+            )}
+            <h4>{글.title}</h4>
+            <p>{글.date} 작성</p>
+            <div className="album-item-buttons">
+              <div className="like-dislike-buttons">
+                <button
+                  className={`like-button ${글.likes ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLike(글);
+                  }}
+                >
+                  <span role="img" aria-label="likes">❤️</span>
+                  {글.likes || 0}
+                </button>
+                <button
+                  className={`dislike-button ${글.dislikes ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDislike(글);
+                  }}
+                >
+                  <span role="img" aria-label="dislikes">👎</span>
+                  {글.dislikes || 0}
+                </button>
+              </div>
+              <button
+                className="delete-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deletePost(i);
+                }}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
-      <div className='list'>
-        <h4>{ 글제목[1] }</h4>
-        <p>2월 17일 발행</p>
-      </div>
-      <div className='list'>
-        <h4>{ 글제목[2] }</h4>
-        <p>2월 17일 발행</p>
-      </div>
+      {selectedPost && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={closeModal}>&times;</span>
+            <div className="write-preview">
+              {selectedPost.image && (
+                <img src={selectedPost.image} alt={selectedPost.title} className="write-image-preview" />
+              )}
+              <h4>{selectedPost.title}</h4>
+              <p>{selectedPost.content}</p>
+              <p>{selectedPost.date} 작성</p>
+              <div className="like-dislike-buttons">
+                <button
+                  className={`like-button ${selectedPost.likes ? 'active' : ''}`}
+                  onClick={() => toggleLike(selectedPost)}
+                >
+                  <span role="img" aria-label="likes">❤️</span>
+                  {selectedPost.likes || 0}
+                </button>
+                <button
+                  className={`dislike-button ${selectedPost.dislikes ? 'active' : ''}`}
+                  onClick={() => toggleDislike(selectedPost)}
+                >
+                  <span role="img" aria-label="dislikes">👎</span>
+                  {selectedPost.dislikes || 0}
+                </button>
+              </div>
+              <div className='comment-section'></div>
+              <h3>===== 댓글 =====</h3>
+              {selectedPost.comments && selectedPost.comments.map((comment, index) => (
+                <div key={index} className='comment'>
+                  <p>{comment}</p>
+                </div>
+              ))}
+              <input type="text" placeholder="댓글 작성" onKeyPress={(e) => {
+                if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                  addComment(selectedPost, e.target.value.trim());
+                  e.target.value = '';
+                }
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
-      <Modal></Modal>
+function Write({ mode, post }) {
+  const [titleValue, setTitleValue] = useState(mode === 'edit' ? post.title : '');
+  const [contentValue, setContentValue] = useState(mode === 'edit' ? post.content : '');
+  const [imageValue, setImageValue] = useState(mode === 'edit' ? post.image : '');
+  const navigate = useNavigate();
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setImageValue(reader.result);
+    };
+
+    if (file) {
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = () => {
+    const now = new Date();
+    const newPost = {
+      title: titleValue,
+      content: contentValue,
+      image: imageValue,
+      date: now.toLocaleDateString(),
+      likes: 0,
+      dislikes: 0,
+      comments: [],
+    };
+
+    try {
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const 글제목 = storedData ? JSON.parse(storedData) : [];
+      const updatedPosts = [...글제목, newPost];
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+      setTitleValue('');
+      setContentValue('');
+      setImageValue('');
+      navigate('/');
+    } catch (error) {
+      console.error("Failed to save new post", error);
+    }
+  };
+
+  const handleUpdate = () => {
+    try {
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const 글제목 = storedData ? JSON.parse(storedData) : [];
+      const updatedPosts = 글제목.map((p) => (p === post ? {
+        ...post,
+        title: titleValue,
+        content: contentValue,
+        image: imageValue,
+        date: new Date().toLocaleDateString(),
+      } : p));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+      navigate('/');
+    } catch (error) {
+      console.error("Failed to update post", error);
+    }
+  };
+
+  return (
+    <div className="write-container">
+      <h4>{mode === 'edit' ? '글 수정' : '새 글 작성'}</h4>
+      <div className="write-preview">
+        <div className="write-image-container">
+          <label htmlFor="image-input">
+            {imageValue ? (
+              <img src={imageValue} alt="Preview" className="write-image-preview" />
+            ) : (
+              <div className="image-placeholder">
+                <span>이미지 선택</span>
+              </div>
+            )}
+          </label>
+          <input
+            id="image-input"
+            type="file"
+            onChange={handleImageChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+        <input
+          className="write-title-input"
+          value={titleValue}
+          onChange={(e) => setTitleValue(e.target.value)}
+          placeholder="제목"
+        />
+        <textarea
+          className="write-content-input"
+          value={contentValue}
+          onChange={(e) => setContentValue(e.target.value)}
+          placeholder="내용"
+        ></textarea>
+      </div>
+      {mode === 'edit' ? (
+        <button className="write-submit-button" onClick={handleUpdate}>
+          Update
+        </button>
+      ) : (
+        <button className="write-submit-button" onClick={handleSubmit}>
+          Save
+        </button>
+      )}
     </div>
   );
 }
 
-function Modal(){
-  return(
-      <div className='modal'>
-        <h4> 제목</h4>
-        <p>날짜</p>
-        <p>상세내용</p>
-      </div>
-  )
+function WriteWrapper() {
+  const [mode, setMode] = useState('create');
+  const [post, setPost] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const postId = searchParams.get('postId');
+    if (postId) {
+      try {
+        const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const 글제목 = storedData ? JSON.parse(storedData) : [];
+        const selectedPost = 글제목[parseInt(postId, 10)];
+        if (selectedPost) {
+          setMode('edit');
+          setPost(selectedPost);
+        }
+      } catch (error) {
+        console.error("Failed to retrieve post for editing", error);
+      }
+    }
+  }, [location]);
+
+  return <Write mode={mode} post={post} />;
 }
+
 export default App;

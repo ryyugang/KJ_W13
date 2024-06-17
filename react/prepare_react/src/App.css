@@ -2,16 +2,6 @@
   text-align: center;
 }
 
-div {
-  box-sizing: border-box;
-}
-
-.list {
-  padding-left: 20px;
-  text-align: left;
-  border-bottom: 1px solid grey;
-}
-
 .black-nav {
   display: flex;
   background: black;
@@ -20,43 +10,215 @@ div {
   padding-left: 20px;
 }
 
-.modal {
-  margin-top: 20px;
+.album {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-gap: 50px;
   padding: 20px;
-  background: #eee;
-  text-align: left;
-}
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.album-item {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 8px 8px rgba(0, 0, 0, 0.1);
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.album-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.album-item h4 {
+  margin: 10px;
+  font-size: 19px;
+}
+
+.album-item p {
+  margin: 0 10px 10px;
+  color: #888;
+}
+
+.write-button-container {
+  text-align: right;
+  margin: 20px;
+}
+
+.write-button {
+  padding: 10px 20px;
+  font-size: 18px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.write-button:hover {
+  background-color: #0056b3;
+}
+
+.write-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.write-preview {
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.write-image-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.App-link {
-  color: #61dafb;
+.write-image-preview {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.image-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 535px;
+  height: 200px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #888;
+  cursor: pointer;
+  margin: 0 auto;
 }
+
+.write-title-input,
+.write-content-input {
+  width: calc(100% - 40px);
+  padding: 10px;
+  margin: 0 auto 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.write-content-input {
+  height: 200px;
+  resize: none;
+}
+
+.write-submit-button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.write-submit-button:hover {
+  background-color: #0056b3;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80%;
+  overflow-y: auto;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: -5px;
+  right: 3px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #888;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #000;
+}
+
+.album-item-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.delete-button {
+  padding: 5px 10px;
+  background-color: #ff4d4d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  background-color: #cc0000;
+}
+
+/* ... (생략) ... */
+
+.like-dislike-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.like-button,
+.dislike-button {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.like-button {
+  background-color: #ff4d4d;
+  color: #fff;
+}
+
+.dislike-button {
+  background-color: #ffa500;
+  color: #fff;
+}
+
+.like-button.active,
+.dislike-button.active {
+  opacity: 0.7;
+}
+
+/* ... (생략) ... */
