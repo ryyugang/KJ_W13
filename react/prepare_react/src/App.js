@@ -29,23 +29,64 @@ function App() {
   );
 }
 
+/* Hook 
+  : 함수 Component에서 state와 같은 기능들을 사용할 수 있게 하는 기능
+    -> 데이터의 변동에 '함수 Component' 또한 유연하게 동작할 수 있게 한다
+    -> 데이터의 변동이 있어도 해당 Component Rerendering -> UI update
+    
+  - useState : Component에서 state 관리할 수 있게 함
+  - useEffect : Component의 Rendering 이후 특정 작업 수행하게 함
+  - useContext : React Context API 구독하게 함 (?)
+  - useReducer : Component의 state update logic을 Component에서 분리 
+*/
+
 // Main Page Component
 function Home() {
+  
   // navigate 함수를 가져와 페이지 이동 가능하게 함
   const navigate = useNavigate();
+  
   // 현재 URL 정보 가져옴
   const location = useLocation();
+  
   // 게시물 상태와 함수 정의
+  /* posts 상태 초기값을 빈 배열로 설정 */
   const [posts, setPosts] = useState([]);
+  
   // 선택된 게시물 상태와 함수 정의
   const [selectedPost, setSelectedPost] = useState(null);
 
-  // Component가 처음 Rendering 될 때 Local Storage에서 게시물 데잍를 가져와 상태에 저장
+  // Component가 처음 Rendering 될 때 Local Storage에서 게시물 데이터를 가져와 상태에 저장
   useEffect(() => {
     const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    
+    /* storedData True 
+      -> storedData : local storage에 저장된 데이터 (일반적으로 JSON 문자열)
+      -> JSON.parse() : 문자열을 객체로 변환
+      => local storage에 저장된 문자열을 JS 객체로 변환 => storedPosts에 할당
+      
+       storedData False
+      => storedPosts에 빈 배열 할당
+    */
     const storedPosts = storedData ? JSON.parse(storedData) : [];
     setPosts(storedPosts);
   }, []);
+
+  /* Dependency Array
+    1) []
+    - Component Mount 될 때 (= Component 처음으로 Rendering -> DOM Tree Insert) useEffect 내부 코드 실행
+    - Component Unmount 될 때 (= Component DOM Tree Delete) cleanup 함수 실행
+
+    2) Value True
+    - Component Mount 될 때 useEffect 내부 코드 실행
+    - Dependency Array Value 값 변경 시 useEffect 내부 코드 실행
+    - Component Unmount 될 때 cleanup 함수 실행
+
+    3) Value False
+    - Component Mount 될 때 useEffect 내부 코드 실행
+    - Component Update 시 useEffect 내부 코드 실행
+    - Component Unmount 될 때 cleanup 함수 실행
+  */
 
   // URL 변경 시 업데이트된 게시물 데이터를 상태에 저장
   useEffect(() => {
@@ -106,22 +147,31 @@ function Home() {
   };
 
   // 선택된 게시물의 좋아요 수 증가
-  const toggleLike = () => {
-    const updatedPost = {
-      ...selectedPost,
-      likes: selectedPost.likes ? selectedPost.likes + 1 : 1,
-    };
-    updatePost(updatedPost);
+  const toggleLike = (post) => {
+    const updatedPosts = posts.map((p) =>
+      p === post ? { ...p, likes: p.likes ? p.likes + 1 : 1 } : p
+    );
+    setPosts(updatedPosts);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+    } catch (error) {
+      console.error("좋아요 업데이트 실패함 ;;", error);
+    }
   };
 
-  // 선택된 게시물의 싫어요 수 증가
-  const toggleDislike = () => {
-    const updatedPost = {
-      ...selectedPost,
-      dislikes: selectedPost.dislikes ? selectedPost.dislikes + 1 : 1,
-    };
-    updatePost(updatedPost);
+// 선택된 게시물의 싫어요 수 증가
+  const toggleDislike = (post) => {
+    const updatedPosts = posts.map((p) =>
+      p === post ? { ...p, dislikes: p.dislikes ? p.dislikes + 1 : 1 } : p
+    );
+    setPosts(updatedPosts);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+    } catch (error) {
+      console.error("싫어요 업데이트 실패함 ;;", error);
+    }
   };
+
 
   // 선택된 게시물에 댓글 추가
   const addComment = (comment) => {
@@ -157,7 +207,7 @@ function Home() {
                   className={`like-button ${post.likes ? 'active' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleLike();
+                    toggleLike(post);
                   }}
                 >
                   <span role="img" aria-label="likes">❤️</span>
@@ -167,7 +217,7 @@ function Home() {
                   className={`dislike-button ${post.dislikes ? 'active' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleDislike();
+                    toggleDislike(post);
                   }}
                 >
                   <span role="img" aria-label="dislikes">👎</span>
@@ -201,14 +251,14 @@ function Home() {
               <div className="like-dislike-buttons">
                 <button
                   className={`like-button ${selectedPost.likes ? 'active' : ''}`}
-                  onClick={toggleLike}
+                  onClick={() => toggleLike(selectedPost)}
                 >
                   <span role="img" aria-label="likes">❤️</span>
                   {selectedPost.likes || 0}
                 </button>
                 <button
                   className={`dislike-button ${selectedPost.dislikes ? 'active' : ''}`}
-                  onClick={toggleDislike}
+                  onClick={() => toggleDislike(selectedPost)}
                 >
                   <span role="img" aria-label="dislikes">👎</span>
                   {selectedPost.dislikes || 0}
