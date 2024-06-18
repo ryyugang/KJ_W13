@@ -8,9 +8,20 @@ import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation 
 
 // local storage에 저장할 키 값을 정의 
 const LOCAL_STORAGE_KEY = '글제목';
+const USER_STORAGE_KEY = '사용자';
 
-// App Routing 설정
+/* App Routing 설정 */
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
   return (
     <Router>
       <div className='App'>
@@ -18,11 +29,32 @@ function App() {
           <h4>
             <Link to='/'>유사게시판</Link>
           </h4>
+          <div className='auth-buttons-container'>
+            {isLoggedIn ? (
+              <button className='auth-button' onClick={handleLogout}>
+                로그아웃
+              </button>
+            ) : (
+              <>
+                <Link to='/login' className='auth-button'>
+                  로그인
+                </Link>
+                <Link to='/signup' className='auth-button'>
+                  회원가입
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/write" element={<Write />} />
+          <Route path='/' element={<Home />} />
+          <Route path='/write' element={<Write />} />
+          <Route
+            path='/login'
+            element={<Login handleLogin={handleLogin} />}
+          />
+          <Route path='/signup' element={<Signup />} />
         </Routes>
       </div>
     </Router>
@@ -40,7 +72,7 @@ function App() {
   - useReducer : Component의 state update logic을 Component에서 분리 
 */
 
-// Main Page Component
+/* Main Page Component */
 function Home() {
   
   // navigate 함수를 가져와 페이지 이동 가능하게 함
@@ -56,7 +88,7 @@ function Home() {
   // 선택된 게시물 상태와 함수 정의
   const [selectedPost, setSelectedPost] = useState(null);
 
-  // Component가 처음 Rendering 될 때 Local Storage에서 게시물 데이터를 가져와 상태에 저장
+  /* Component가 처음 Rendering 될 때 Local Storage에서 게시물 데이터를 가져와 상태에 저장 */
   useEffect(() => {
     const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
     
@@ -88,46 +120,73 @@ function Home() {
     - Component Unmount 될 때 cleanup 함수 실행
   */
 
-  // URL 변경 시 업데이트된 게시물 데이터를 상태에 저장
+  /* URL 변경 시 업데이트된 게시물 데이터를 상태에 저장 */
   useEffect(() => {
+    
+    // location.state : URL 변경 시 전달된 state 값
+    // { state } : location 객체에서 state 값만 가져옴
+    // 둘이 똑같은거임
     const { state } = location;
+    
+    // state 값이 존재하고 updatedPosts가 존재할 때 게시물 상태 업데이트
     if (state && state.updatedPosts) {
       setPosts(state.updatedPosts);
     }
+  
+    // location이 변경될 때마다 실행
   }, [location]);
 
-  // ESC를 누를 때 모달 창 닫게 함
+  /* ESC를 누를 때 모달 창 닫게 함 */
   useEffect(() => {
+
+    // 키보드 이벤트 핸들러 정의
+    // e.key : 눌린 키 값
     const handleKeyDown = (e) => {
+
+      // 눌린 키가 'Escape'일 때 모달 창 닫음
       if (e.key === 'Escape') {
         closeModal();
       }
     };
 
+    // 키보드 이벤트 핸들러 등록
     document.addEventListener('keydown', handleKeyDown);
 
+    // 컴포넌트가 Unmount 될 때 키보드 이벤트 핸들러 해제
+    // 컴포넌트가 Unmount 되는건 페이지가 바뀌거나, 컴포넌트가 사라지는 경우
     return () => {
+      // 키보드 이벤트 핸들러 해제
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
-  // 모달창 열고 선택된 게시물 상태 업데이트
+  /* 모달창 열고 선택된 게시물 상태 업데이트 */
   const openModal = (post) => {
+    
+    // 선택된 게시물 상태 업데이트
     setSelectedPost(post);
   };
 
-  // 모달창 닫고 선택된 게시물 상태 초기화
+  /* 모달창 닫고 선택된 게시물 상태 초기화 */
   const closeModal = () => {
+
+    // 선택된 게시물 상태 초기화
     setSelectedPost(null);
   };
 
-  // 게시물 삭제
+  /* 게시물 삭제 */
   const deletePost = (index) => {
+
+    // window.confirm() : 사용자에게 확인 창을 띄워주는 함수
     if (window.confirm('진짜 삭제함 ?')) {
       const updatedPosts = [...posts];
+
+      // splice(index, 1) : index부터 1개의 요소 제거
       updatedPosts.splice(index, 1);
+      // 게시물 상태 업데이트
       setPosts(updatedPosts);
       try {
+        // local storage에 업데이트된 게시물 데이터 저장
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
       } catch (error) {
         console.error("삭제 실패함 ;;", error);
@@ -135,31 +194,28 @@ function Home() {
     }
   };
 
-  // 게시물 수정
-  const updatePost = (updatedPost) => {
-    const updatedPosts = posts.map((p) => (p === selectedPost ? updatedPost : p));
-    setPosts(updatedPosts);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-    } catch (error) {
-      console.error("수정 실패함 ;;", error);
-    }
-  };
-
-  // 선택된 게시물의 좋아요 수 증가
+  /* 선택된 게시물의 좋아요 수 증가 */
   const toggleLike = (post) => {
+
+    // posts.map() : posts 배열을 순회하며 새로운 배열을 반환
     const updatedPosts = posts.map((p) =>
+
+      // p === post : 선택된 게시물이면 좋아요 수 증가
       p === post ? { ...p, likes: p.likes ? p.likes + 1 : 1 } : p
     );
+
+    // 게시물 상태 업데이트
     setPosts(updatedPosts);
     try {
+      
+      // local storage에 업데이트된 게시물 데이터 저장
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
     } catch (error) {
       console.error("좋아요 업데이트 실패함 ;;", error);
     }
   };
 
-// 선택된 게시물의 싫어요 수 증가
+/* 선택된 게시물의 싫어요 수 증가 */
   const toggleDislike = (post) => {
     const updatedPosts = posts.map((p) =>
       p === post ? { ...p, dislikes: p.dislikes ? p.dislikes + 1 : 1 } : p
@@ -173,17 +229,25 @@ function Home() {
   };
 
 
-  // 선택된 게시물에 댓글 추가
+  /* 선택된 게시물에 댓글 추가 */
   const addComment = (comment) => {
     const updatedPost = {
       ...selectedPost,
+      
+      // 삼항 연산자 : selectedPost.comments가 존재하면 selectedPost.comments 배열에 comment 추가, 아니면 [comment] 배열 생성
       comments: selectedPost.comments ? [...selectedPost.comments, comment] : [comment],
     };
-    updatePost(updatedPost);
+    const updatedPosts = posts.map((p) => (p === selectedPost ? updatedPost : p));
+    setPosts(updatedPosts);
     setSelectedPost(updatedPost);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+    } catch (error) {
+      console.error("댓글 추가 실패함 ;;", error);
+    }
   };
 
-  // Main Page UI Rendering
+  /* Main Page UI Rendering */
   return (
     <>
       <div className="write-button-container">
@@ -264,15 +328,6 @@ function Home() {
                   {selectedPost.dislikes || 0}
                 </button>
               </div>
-              <button
-                className="edit-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/write?postId=${posts.indexOf(selectedPost)}`);
-                }}
-              >
-                수정
-              </button>
               <div className='comment-section'></div>
               <h3>===== 댓글 =====</h3>
               {selectedPost.comments && selectedPost.comments.map((comment, index) => (
@@ -294,7 +349,7 @@ function Home() {
   );
 }
 
-// 글쓰기 페이지 Component
+/* 글쓰기 페이지 Component */
 function Write() {
 
   // 제목, 내용, 이미지 상태와 함수 정의
@@ -304,61 +359,42 @@ function Write() {
 
   // navigate 함수 가져와 페이지 이동 가능하게 함
   const navigate = useNavigate();
-  // 현재 URL 정보 가져옴
-  const location = useLocation();
-  // 글 수정 모드 상태와 함수 정의
-  const [isEditing, setIsEditing] = useState(false);
-  // 수정할 게시물 상태와 함수 정의
-  const [editingPost, setEditingPost] = useState(null);
 
-  // URL 변경 시 게시물 수정 모드로 전환, 수정할 게시물 데이터를 상태에 저장
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const postId = searchParams.get('postId');
-    if (postId) {
-      try {
-        const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-        const posts = storedData ? JSON.parse(storedData) : [];
-        const selectedPost = posts[parseInt(postId, 10)];
-        if (selectedPost) {
-          setIsEditing(true);
-          setEditingPost(selectedPost);
-          setTitleValue(selectedPost.title);
-          setContentValue(selectedPost.content);
-          setImageValue(selectedPost.image);
-        }
-      } catch (error) {
-        console.error("Failed to retrieve post for editing", error);
-      }
-    }
-  }, [location]);
-
-  // 이미지 파일을 변경할 때 호출
+  /* 이미지 파일을 변경할 때 호출 */
   const handleImageChange = (e) => {
+
+    // e.target.files[0] : 파일 선택 시 선택된 파일 정보
     const file = e.target.files[0];
+    // FileReader() : 파일을 읽을 수 있는 객체 생성
     const reader = new FileReader();
 
+    // 파일 읽기가 완료되면 이미지 상태 업데이트
     reader.onloadend = () => {
       setImageValue(reader.result);
     };
 
+    // 파일을 읽어 base64 형태로 변환
     if (file) {
       reader.readAsDataURL(file);
     }
   };
 
-  // 게시물을 저장하고 메인 페이지로 이동
+  /* 게시물을 저장하고 메인 페이지로 이동 */
   const savePost = (updatedPosts) => {
     try {
+      // local storage에 업데이트된 게시물 데이터 저장
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+      
+      // 메인 페이지로 이동하며 업데이트된 게시물 데이터 전달
       navigate('/', { state: { updatedPosts } });
     } catch (error) {
-      console.error("Failed to save post", error);
+      console.error("게시물 저장 실패함 ;;", error);
     }
   };
 
-  // 새 글을 작성하고 메인 페이지로 이동
+  /* 새 글을 작성하고 메인 페이지로 이동 */
   const handleSubmit = () => {
+    // 현재 시간을 가져와서 게시물 데이터 생성
     const now = new Date();
     const newPost = {
       title: titleValue,
@@ -369,43 +405,22 @@ function Write() {
       dislikes: 0,
       comments: [],
     };
-
+    
+    // try: 예외 발생 시 catch 블록 실행
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       const posts = storedData ? JSON.parse(storedData) : [];
       const updatedPosts = [...posts, newPost];
       savePost(updatedPosts);
     } catch (error) {
-      console.error("Failed to save new post", error);
+      console.error("게시물 저장 실패함 ;;", error);
     }
   };
 
-  // 게시물을 수정하고 메인 페이지로 이동
-  const handleUpdate = () => {
-    try {
-      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const posts = storedData ? JSON.parse(storedData) : [];
-      const updatedPosts = posts.map((p) =>
-        p === editingPost
-          ? {
-              ...p,
-              title: titleValue,
-              content: contentValue,
-              image: imageValue,
-              date: new Date().toLocaleDateString(),
-            }
-          : p
-      );
-      savePost(updatedPosts);
-    } catch (error) {
-      console.error("Failed to update post", error);
-    }
-  };
-
-  // 글쓰기 페이지와 UI Rendering
+  /* 글쓰기 페이지와 UI Rendering */
   return (
     <div className="write-container">
-      <h4>{isEditing ? '글 수정' : '새 글 작성'}</h4>
+      <h4>새 글 작성</h4>
       <div className="write-preview">
         <div className="write-image-container">
           <label htmlFor="image-input">
@@ -437,17 +452,97 @@ function Write() {
           placeholder="내용"
         ></textarea>
       </div>
-      {isEditing ? (
-        <button className="write-submit-button" onClick={handleUpdate}>
-          Update
-        </button>
-      ) : (
-        <button className="write-submit-button" onClick={handleSubmit}>
-          Save
-        </button>
-      )}
+      <button className="write-submit-button" onClick={handleSubmit}>
+        Save
+      </button>
     </div>
   );
 }
 
-export default App;
+/* 로그인 페이지 Component */
+function Login() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+    const users = storedUser ? JSON.parse(storedUser) : [];
+
+    const user = users.find((user) => user.username === username && user.password === password);
+
+    if (user) {
+      alert('로그인 성공 !!');
+      navigate('/');
+    } else {
+      alert('로그인 실패 ;;');
+    }
+};
+
+  return (
+    <div className="auth-container">
+      <h2>로그인</h2>
+      <input
+        type='text'
+        placeholder="아이디"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <input
+        type='password'
+        placeholder="비밀번호"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={handleLogin}>로그인</button>
+    </div>
+  );
+}
+
+
+/* 회원가입 페이지 Component */
+function Signup() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleSignup = () => {
+    const newUser = { username, password };
+    
+    let users = [];
+    const storedUsers = localStorage.getItem(USER_STORAGE_KEY);
+    if (storedUsers !== null) {
+      users = JSON.parse(storedUsers);
+      if (!Array.isArray(users)) {
+        users = [];
+      }
+    }
+
+    users.push(newUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+
+    alert('회원가입 성공 !!');
+    navigate('/login', { state: { signupSuccess: true } });
+};
+
+  return (
+    <div className="auth-container">
+      <h2>회원가입</h2>
+      <input
+        type='text'
+        placeholder="아이디"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <input
+        type='password'
+        placeholder="비밀번호"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={handleSignup}>회원가입</button>
+    </div>
+  );
+}
+
+export default App; 
