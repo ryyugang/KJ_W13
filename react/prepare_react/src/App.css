@@ -11,6 +11,21 @@
   padding: 20px;
 }
 
+.black-nav img {
+  width: 150px;
+  height: auto;
+}
+
+.video-container {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.video {
+  width: 200px;
+  height: auto;
+}
+
 .auth-buttons-container {
   display: flex;
   gap: 10px;
@@ -179,8 +194,8 @@
 
 .close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: -5px;
+  right: 5px;
   font-size: 24px;
   color: #888;
   cursor: pointer;
@@ -277,4 +292,26 @@
 
 .auth-container button:hover {
   background-color: #0056b3;
+}
+
+.modal-content-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.modal-content-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.modal-content-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.modal-content-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
 }

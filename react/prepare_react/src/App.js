@@ -3,6 +3,8 @@
 
 // React와 React Router 라이브러리 호출
 import './App.css';
+import logo from './logo.png';
+import video from './doyo.mp4';
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -12,26 +14,30 @@ const USER_STORAGE_KEY = '사용자';
 
 /* App Routing 설정 */
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // 로그인 상태 상태와 함수 정의
+  const [currentUser, setCurrentUser] = useState(null); // 현재 사용자 상태와 함수 정의
 
+  /* Component mount 시 로그인 상태 확인 및 현재 사용자 정보 가져옴 */ 
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       const user = JSON.parse(storedUser);
       const longinTime = new Date(user.loginTime);
       const currentTime = new Date();
-      const loginDuration = 30 * 60 * 1000;
+      const loginDuration = 30 * 60 * 1000; // 30분
 
+      // 로그인 시간이 30분 이내일 때 로그인 상태 유지
       if (currentTime.getTime() - longinTime.getTime() < loginDuration) {
         setIsLoggedIn(true);
         setCurrentUser(user);
       } else {
+        // 로그인 시간이 30분 이상일 때 로그아웃
         localStorage.removeItem(currentUser);
       }
     }
   }, []);
 
+  /* 로그인 시 로컬 스토리지에 사용자 정보 저장 */
   const handleLogin = (user) => {
     const loginTime = new Date();
     const userWithLoginTime = { ...user, loginTime };
@@ -40,6 +46,7 @@ function App() {
     setCurrentUser(userWithLoginTime);
   };
 
+  /* 로그아웃 시 로컬 스토리지에서 사용자 정보 삭제 */
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
     setIsLoggedIn(false);
@@ -51,8 +58,13 @@ function App() {
       <div className='App'>
         <div className='black-nav'>
           <h4>
-            <Link to='/'>유사게시판</Link>
+            <Link to='/'>
+              <img src={logo} alt='logo' />
+            </Link>
           </h4>
+          <div className='video-container'>
+            <video src={video} autoPlay loop muted playsInline className='video'/>
+          </div>
           <div className='auth-buttons-container'>
             {isLoggedIn ? (
               <button className='auth-button' onClick={handleLogout}>
@@ -70,7 +82,7 @@ function App() {
             )}
           </div>
         </div>
-
+          
         <Routes>
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
           <Route path="/write" element={<Write isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
@@ -95,9 +107,6 @@ function App() {
 
 /* Main Page Component */
 function Home({ isLoggedIn, currentUser }) {
-  
-  // navigate 함수를 가져와 페이지 이동 가능하게 함
-  const navigate = useNavigate();
   
   // 현재 URL 정보 가져옴
   const location = useLocation();
@@ -262,10 +271,13 @@ function Home({ isLoggedIn, currentUser }) {
       // 삼항 연산자 : selectedPost.comments가 존재하면 selectedPost.comments 배열에 comment 추가, 아니면 [comment] 배열 생성
       comments: selectedPost.comments ? [...selectedPost.comments, comment] : [comment],
     };
+
+    // 선택된 게시물의 댓글 추가
     const updatedPosts = posts.map((p) => (p === selectedPost ? updatedPost : p));
     setPosts(updatedPosts);
     setSelectedPost(updatedPost);
     try {
+      // local storage에 업데이트된 게시물 데이터 저장
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
     } catch (error) {
       console.error("댓글 추가 실패함 ;;", error);
@@ -332,11 +344,15 @@ function Home({ isLoggedIn, currentUser }) {
       </div>
       {selectedPost && (
         <div className="modal" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className='modal-overlay'></div>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <span className="close" onClick={closeModal}>&times;</span>
             <div className="write-preview">
               {selectedPost.image && (
-                <img src={selectedPost.image} alt={selectedPost.title} className="write-image-preview" />
+                <img src={selectedPost.image} 
+                     alt={selectedPost.title} 
+                     className="write-image-preview" 
+                />
               )}
               <h4>{selectedPost.title}</h4>
               <p>{selectedPost.content}</p>
@@ -344,14 +360,14 @@ function Home({ isLoggedIn, currentUser }) {
               <div className="like-dislike-buttons">
                 <button
                   className={`like-button ${selectedPost.likes ? 'active' : ''}`}
-                  onClick={() => toggleLike(selectedPost)}
+                  disabled
                 >
                   <span role="img" aria-label="likes">❤️</span>
                   {selectedPost.likes || 0}
                 </button>
                 <button
                   className={`dislike-button ${selectedPost.dislikes ? 'active' : ''}`}
-                  onClick={() => toggleDislike(selectedPost)}
+                  disabled
                 >
                   <span role="img" aria-label="dislikes">👎</span>
                   {selectedPost.dislikes || 0}
@@ -380,14 +396,22 @@ function Home({ isLoggedIn, currentUser }) {
 
 /* 글쓰기 페이지 Component */
 function Write({ isLoggedIn, currentUser }) {
+  
+  // navigate 함수 가져와 페이지 이동 가능하게 함
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      alert("로그인 하셈 ;;");
+      navigate('/login');
+    }
+  }, [isLoggedIn, navigate]);
 
   // 제목, 내용, 이미지 상태와 함수 정의
   const [titleValue, setTitleValue] = useState('');
   const [contentValue, setContentValue] = useState('');
   const [imageValue, setImageValue] = useState('');
 
-  // navigate 함수 가져와 페이지 이동 가능하게 함
-  const navigate = useNavigate();
 
   /* 이미지 파일을 변경할 때 호출 */
   const handleImageChange = (e) => {
@@ -458,7 +482,7 @@ function Write({ isLoggedIn, currentUser }) {
               <img src={imageValue} alt="Preview" className="write-image-preview" />
             ) : (
               <div className="image-placeholder">
-                <span>이미지 선택</span>
+                <span>이미지 첨부할거면 누르셈</span>
               </div>
             )}
           </label>
@@ -491,10 +515,12 @@ function Write({ isLoggedIn, currentUser }) {
 
 /* 로그인 페이지 Component */
 function Login({ handleLogin }) {
+  
+  // 사용자 이름, 비밀번호 상태와 함수 정의
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-
+  
   const handleLoginSubmit = () => {
     const storedUser = localStorage.getItem(USER_STORAGE_KEY);
     const users = storedUser ? JSON.parse(storedUser) : [];
