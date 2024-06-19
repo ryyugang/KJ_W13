@@ -13,13 +13,37 @@ const USER_STORAGE_KEY = '사용자';
 /* App Routing 설정 */
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const handleLogin = () => {
+  useEffect(() => {
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      const longinTime = new Date(user.loginTime);
+      const currentTime = new Date();
+      const loginDuration = 30 * 60 * 1000;
+
+      if (currentTime.getTime() - longinTime.getTime() < loginDuration) {
+        setIsLoggedIn(true);
+        setCurrentUser(user);
+      } else {
+        localStorage.removeItem(currentUser);
+      }
+    }
+  }, []);
+
+  const handleLogin = (user) => {
+    const loginTime = new Date();
+    const userWithLoginTime = { ...user, loginTime };
+    localStorage.setItem('currentUser', JSON.stringify(userWithLoginTime));
     setIsLoggedIn(true);
+    setCurrentUser(userWithLoginTime);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('currentUser');
     setIsLoggedIn(false);
+    setCurrentUser(null);
   };
 
   return (
@@ -48,13 +72,10 @@ function App() {
         </div>
 
         <Routes>
-          <Route path='/' element={<Home />} />
-          <Route path='/write' element={<Write />} />
-          <Route
-            path='/login'
-            element={<Login handleLogin={handleLogin} />}
-          />
-          <Route path='/signup' element={<Signup />} />
+          <Route path="/" element={<Home isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
+          <Route path="/write" element={<Write isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
+          <Route path="/login" element={<Login handleLogin={handleLogin} />} />
+          <Route path="/signup" element={<Signup />} />
         </Routes>
       </div>
     </Router>
@@ -73,7 +94,7 @@ function App() {
 */
 
 /* Main Page Component */
-function Home() {
+function Home({ isLoggedIn, currentUser }) {
   
   // navigate 함수를 가져와 페이지 이동 가능하게 함
   const navigate = useNavigate();
@@ -129,7 +150,7 @@ function Home() {
     const { state } = location;
     
     // state 값이 존재하고 updatedPosts가 존재할 때 게시물 상태 업데이트
-    if (state && state.updatedPosts) {
+    if (state?.updatedPosts) {
       setPosts(state.updatedPosts);
     }
   
@@ -177,20 +198,24 @@ function Home() {
   /* 게시물 삭제 */
   const deletePost = (index) => {
 
-    // window.confirm() : 사용자에게 확인 창을 띄워주는 함수
-    if (window.confirm('진짜 삭제함 ?')) {
-      const updatedPosts = [...posts];
+    if (isLoggedIn && currentUser && posts[index].author === currentUser.username) {
+      // window.confirm() : 사용자에게 확인 창을 띄워주는 함수
+      if (window.confirm('진짜 삭제함 ?')) {
+        const updatedPosts = [...posts];
 
-      // splice(index, 1) : index부터 1개의 요소 제거
-      updatedPosts.splice(index, 1);
-      // 게시물 상태 업데이트
-      setPosts(updatedPosts);
-      try {
-        // local storage에 업데이트된 게시물 데이터 저장
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
-      } catch (error) {
-        console.error("삭제 실패함 ;;", error);
+        // splice(index, 1) : index부터 1개의 요소 제거
+        updatedPosts.splice(index, 1);
+        // 게시물 상태 업데이트
+        setPosts(updatedPosts);
+        try {
+          // local storage에 업데이트된 게시물 데이터 저장
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedPosts));
+        } catch (error) {
+          console.error("삭제 실패함 ;;", error);
+        }
       }
+    } else {
+      alert('삭제 권한이 없음 ;;');
     }
   };
 
@@ -251,9 +276,11 @@ function Home() {
   return (
     <>
       <div className="write-button-container">
+        {isLoggedIn && (
         <Link to="/write" className="write-button">
           글쓰기
         </Link>
+        )}
       </div>
       <div className='album'>
         {posts.map((post, i) => (
@@ -288,6 +315,7 @@ function Home() {
                   {post.dislikes || 0}
                 </button>
               </div>
+              {isLoggedIn && currentUser && post.author === currentUser.username && (
               <button
                 className="delete-button"
                 onClick={(e) => {
@@ -297,6 +325,7 @@ function Home() {
               >
                 삭제
               </button>
+              )}
             </div>
           </div>
         ))}
@@ -350,7 +379,7 @@ function Home() {
 }
 
 /* 글쓰기 페이지 Component */
-function Write() {
+function Write({ isLoggedIn, currentUser }) {
 
   // 제목, 내용, 이미지 상태와 함수 정의
   const [titleValue, setTitleValue] = useState('');
@@ -397,6 +426,7 @@ function Write() {
     // 현재 시간을 가져와서 게시물 데이터 생성
     const now = new Date();
     const newPost = {
+      author: currentUser.username,
       title: titleValue,
       content: contentValue,
       image: imageValue,
@@ -460,24 +490,25 @@ function Write() {
 }
 
 /* 로그인 페이지 Component */
-function Login() {
+function Login({ handleLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = () => {
+  const handleLoginSubmit = () => {
     const storedUser = localStorage.getItem(USER_STORAGE_KEY);
     const users = storedUser ? JSON.parse(storedUser) : [];
 
     const user = users.find((user) => user.username === username && user.password === password);
 
     if (user) {
+      handleLogin(user);
       alert('로그인 성공 !!');
       navigate('/');
     } else {
       alert('로그인 실패 ;;');
     }
-};
+  };
 
   return (
     <div className="auth-container">
@@ -494,7 +525,7 @@ function Login() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <button onClick={handleLogin}>로그인</button>
+      <button onClick={handleLoginSubmit}>로그인</button>
     </div>
   );
 }

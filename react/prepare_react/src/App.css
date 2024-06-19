@@ -255,16 +255,17 @@
 }
 
 .auth-container input {
-  width: 100%;
+  display: block;
+  width: 94%;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
 }
 
 .auth-container button {
-  width: 100%;
+  width: 40%;
   padding: 10px;
   background-color: #007bff;
   color: #fff;
